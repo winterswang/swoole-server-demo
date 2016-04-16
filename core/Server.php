@@ -1,11 +1,12 @@
 <?php
 /**
- * @Author: winterswang(王广超)
+ * @Author: winterswang(Í¹㳬)
  * @Date:   2016-04-15 11:24:41
- * @Last Modified by:   winterswang(王广超)
+ * @Last Modified by:   winterswang(Í¹㳬)
  * @Last Modified time: 2016-04-15 14:14:49
  */
 
+namespace uranus\core;
 class Server
 {
     protected $sw;
@@ -23,13 +24,12 @@ class Server
     protected $masterPidFile;
     protected $managerPidFile;
     protected $user;
-    protected $enableHttp = false;
-
 
     private $preSysCmd = '%+-swoole%+-';
     private $requireFile = '';
 
-    protected $protocol;
+    public $enableHttp = false;
+    public $protocol;
 
     function __construct($config = array())
     {
@@ -203,8 +203,7 @@ class Server
             Console::changeUser($this->user);
         }
 
-        //注册PHP代码
-        $protocol = (require_once $this->requireFile);
+        //ע²áP´ú       $protocol = (require_once $this->requireFile);
         $this->setProtocol($protocol);
 
         if (! $this->protocol)
@@ -212,12 +211,11 @@ class Server
             throw new \Exception("[error] the protocol class  is empty or undefined");
         }
 
-        //加载一些初始化项
+        //¼ÓØ»Щ³õ¯Ï
         $this->protocol->onStart($server, $workerId);
     }
     /*
-        如下的几个函数是通过protocol注册过来实现函数可变执行的
-     */
+        ÈÏµļ¸¸öýýcolע²á4ʵÏº¯Ê¿ɱäÐµÄ     */
     public function onConnect($server, $fd, $fromId)
     {
         
@@ -249,8 +247,7 @@ class Server
     }
 
     /**
-     * [onReceive 这里有一个命令字检测，收到特殊的包，重启服务]
-     * @param  [type] $server [description]
+     * [onReceive ÕÀÓһ¸öî¼ì£¬Êµ½ÌÊµİüôñ    * @param  [type] $server [description]
      * @param  [type] $fd     [description]
      * @param  [type] $fromId [description]
      * @param  [type] $data   [description]
@@ -285,7 +282,7 @@ class Server
 
     public function setProtocol($protocol)
     {
-        /*   protocol类型检查
+        /*   protocolÀÐ¼ì
         if(!($protocol instanceof \Swoole\Server\Protocol))
         {
              throw new \Exception("[error] The protocol is not instanceof \\Swoole\\Server\\Protocol");
@@ -295,10 +292,9 @@ class Server
         $this->protocol->server = $this->sw;
     }
 
-    public function run($setting = array()) {
+    public function run($cmd = 'help') {
 
-        $this->setting = array_merge($this->setting, $setting);
-        $cmd = isset($_SERVER['argv'][1]) ? strtolower($_SERVER['argv'][1]) : 'help';
+        //$cmd = isset($_SERVER['argv'][1]) ? strtolower($_SERVER['argv'][1]) : $cmd;
         switch ($cmd) {
             //stop
             case 'stop':
@@ -306,7 +302,7 @@ class Server
                 break;
             //start
             case 'start':
-                $this->_initRunTime(); // 初始化server资源
+                $this->_initRunTime(); // ³õ¯server×Դ
                 $this->initServer();
                 $this->start();
                 break;
@@ -317,7 +313,7 @@ class Server
             case 'restart':
                 $this->shutdown();
                 sleep(2);
-                $this->_initRunTime(); // 初始化server资源
+                $this->_initRunTime(); // ³õ¯server×Դ
                 $this->initServer();
                 $this->start();
                 break;
@@ -425,13 +421,13 @@ class Server
 
     public function close($client_id)
     {
-        //TODO 这里直接原生的使用是否可以改造？
+        //TODO ÕÀֱ½Ó­ÉµÄ¹ÓÊ·ñԸÄ죿
         swoole_server_close($this->sw, $client_id);
     }
 
     public function send($client_id, $data)
     {
-        //TDOO 同上
+        //TDOO ͬÉ
         swoole_server_send($this->sw, $client_id, $data);
     }
 

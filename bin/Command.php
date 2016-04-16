@@ -8,6 +8,7 @@
 namespace uranus\bin;
 
 use uranus\lib\log\Colors;
+use uranus\core\Server;
 class Command {
 
 	protected $cmds;
@@ -55,14 +56,20 @@ class Command {
 		}
 	}
 
-	private function start($servName){
+	private function start($serverName){
 
 		/*
 			1.the svr name is input
 			2.the svr name ---> svr config --> config/xxxx.ini
 			3.get the config and new a svr and start 
 		*/
-		echo " start the $servName \n";
+		$configPath = STARTBASEPATH . '/config/'.$serverName.'.ini';
+		$configArr = parse_ini_file($configPath, true);
+		$server = new Server($configArr);
+		$server ->setProcessName($serverName);
+		$server ->setRequire($configArr['main']['root']);
+
+		$server ->run('start');
 	}
 
 	private function  getServList(){
@@ -79,7 +86,6 @@ class Command {
 		for($i = 2; $i < count($fileNames); $i++){
 			$arr[] = basename($fileNames[$i],".ini");
 		}
-
 		return $arr;
 	}
 
