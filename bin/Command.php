@@ -1,8 +1,8 @@
 <?php
 /**
- * @Author: winterswang(王广超)
+ * @Author: winterswang(Í¹㳬)
  * @Date:   2016-04-15 15:17:00
- * @Last Modified by:   winterswang(王广超)
+ * @Last Modified by:   winterswang(Í¹㳬)
  * @Last Modified time: 2016-04-15 15:19:59
  */
 namespace uranus\bin;
@@ -36,41 +36,62 @@ class Command {
 			}
 		}
 		elseif(count($this ->cmds) == 2){
-			
+			/*
+				get the server name from the first
+				cmd is the second
+			 */
+			$serverName = $this ->cmds[0];
+			if(!in_array($serverName, $this ->getServList())){
+				$str = "the server name $serverName you input is not in the server list \n";
+				echo Colors::getColoredString($str, 'red', 'black');
+				return;
+			}
+
+			$cmd = $this ->cmds[1];
+			$rep = $this ->$cmd($serverName);
 		}
 		else{
 			$this ->help();
 		}
 	}
 
-	private function startServ($servName){
+	private function start($servName){
 
 		/*
 			1.the svr name is input
 			2.the svr name ---> svr config --> config/xxxx.ini
 			3.get the config and new a svr and start 
 		*/
+		echo " start the $servName \n";
 	}
 
-	private function getList(){
-
+	private function  getServList(){
 		/*
 			get the svr list by the config
 		*/
 		$configPath = STARTBASEPATH . '/config/';
+		$arr = array();
 		if(!is_dir($configPath)){
-			echo " can not find the config dir \n";
-			return;
+			//TODO error log
+			return $arr;
 		}
-		$filenames = scandir($configPath);
-		for($i = 2; $i < count($filenames); $i++){
-			$str = basename($filenames[$i],".ini").PHP_EOL;
+		$fileNames = scandir($configPath);
+		for($i = 2; $i < count($fileNames); $i++){
+			$arr[] = basename($fileNames[$i],".ini");
+		}
+
+		return $arr;
+	}
+
+	private function getList(){
+		$fileNames = $this ->getServList();
+		for($i = 0; $i < count($fileNames); $i++){
+			$str = basename($fileNames[$i],".ini").PHP_EOL;
 			echo Colors::getColoredString($str, 'green', 'black');
 		}
 	}
 
 	private function help(){
-
 		/*
 			show the cmd can be used
 		*/
@@ -82,3 +103,4 @@ class Command {
 	}
 }
 ?>
+
