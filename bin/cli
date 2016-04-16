@@ -1,0 +1,10 @@
+#!/usr/local/services/TSF2-1.0/runtime/php/bin/php
+<?php
+
+use uranus\bin\Command;
+require "../bootstrap.php";
+
+define('STARTBASEPATH', dirname(dirname(__FILE__)));
+array_splice($argv, 0, 1);
+$cmd = new Command($argv);
+$cmd ->exec();
