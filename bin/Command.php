@@ -68,7 +68,7 @@ class Command {
 		$server ->setProcessName($serverName);
 		$server ->setRequire($configArr['main']['root']);
 
-		//$server ->run('start');
+		$server ->run('start');
 	}
 
 	private function  getServList(){

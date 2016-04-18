@@ -23,13 +23,17 @@ class Server
     protected $runPath = '/tmp';
     protected $masterPidFile;
     protected $managerPidFile;
-    protected $user;
+    protected $user = 'root';
+    protected $serverType;
+    protected $serverName;
 
     private $preSysCmd = '%+-swoole%+-';
     private $requireFile = '';
 
     public $enableHttp = false;
     public $protocol;
+
+
 
     /**
      * [__construct description]
@@ -68,7 +72,6 @@ class Server
 
     public function loadConfig($configPath)
     {
-
         if (!is_file($configPath)) {
             //TODO ERROR
             return false;
@@ -81,14 +84,38 @@ class Server
             return false;
         }
 
-        $this->config = array_merge($this->config, $config);
+        $this ->config = array_merge($this->config, $config);
         echo "config == " . print_r($this ->config, true);
+
+        //server type
+        if (isset($this ->config['main']['server_type'])) {
+            $this ->serverType = $this ->config['main']['server_type'];
+
+            switch ($this ->serverType) {
+                case 'http':
+                    $this ->serverName = '\swoole_http_server';
+                    break;
+                case 'tcp':
+                    $this ->serverName = '\swoole_server';
+                    $this ->sockType = SWOOLE_SOCK_TCP;
+                case 'udp':
+                    $this ->serverName = '\swoole_server';
+                    $this ->sockType = SWOOLE_SOCK_UDP;
+                default:
+                    $this ->serverName = '\swoole_server';
+                    $this ->sockType = SWOOLE_SOCK_TCP;
+                    break;
+            }
+        }
+        else{
+            return false;
+        }
         return true;
     }
 
     protected function _initRunTime()
     {
-        $mainSetting = $this->config['server'] ? $this->config['server'] : array();
+        $mainSetting = $this->config['main'] ? $this->config['main'] : array();
         $runSetting = $this->config['setting'] ? $this->config['setting'] : array();
         
         $this->masterPidFile =  $this->runPath . '/' . $this->processName . '.master.pid';
@@ -115,9 +142,8 @@ class Server
     }
 
     private function initServer() {
-        // Creating a swoole server resource object
-        $swooleServerName = $this->enableHttp ? '\swoole_http_server' : '\swoole_server';
-        $this->sw = new $swooleServerName($this->host, $this->port, $this->mode, $this->sockType);
+
+        $this->sw = new $this ->serverName($this->host, $this->port, $this->mode, $this->sockType);
         $this->sw->set($this->setting);
 
         // Set Event Server callback function
@@ -286,19 +312,12 @@ class Server
 
     public function setProtocol($protocol)
     {
-        /*   protocolÀÐ¼ì
-        if(!($protocol instanceof \Swoole\Server\Protocol))
-        {
-             throw new \Exception("[error] The protocol is not instanceof \\Swoole\\Server\\Protocol");
-        }
-        */
         $this->protocol = $protocol;
         $this->protocol->server = $this->sw;
     }
 
     public function run($cmd = 'help') {
 
-        //$cmd = isset($_SERVER['argv'][1]) ? strtolower($_SERVER['argv'][1]) : $cmd;
         switch ($cmd) {
             //stop
             case 'stop':
@@ -306,7 +325,7 @@ class Server
                 break;
             //start
             case 'start':
-                $this->_initRunTime(); // ³õ¯server×Դ
+                $this->_initRunTime();
                 $this->initServer();
                 $this->start();
                 break;
@@ -317,7 +336,7 @@ class Server
             case 'restart':
                 $this->shutdown();
                 sleep(2);
-                $this->_initRunTime(); // ³õ¯server×Դ
+                $this->_initRunTime();
                 $this->initServer();
                 $this->start();
                 break;
