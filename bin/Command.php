@@ -63,12 +63,12 @@ class Command {
 			3.get the config and new a svr and start 
 		*/
 		$configPath = STARTBASEPATH . '/config/'.$serverName.'.ini';
-		$configArr = parse_ini_file($configPath, true);
-		$server = new Server($configArr);
+		$server = new Server();
+		$server ->loadConfig($configPath);
 		$server ->setProcessName($serverName);
 		$server ->setRequire($configArr['main']['root']);
 
-		$server ->run('start');
+		//$server ->run('start');
 	}
 
 	private function  getServList(){

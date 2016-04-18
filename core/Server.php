@@ -31,16 +31,18 @@ class Server
     public $enableHttp = false;
     public $protocol;
 
-    function __construct($config = array())
+    /**
+     * [__construct description]
+     */
+    function __construct()
     {
-        // Initialization server startup parameters
+
         $this->setting = array_merge(array(
             'worker_num' => 8,                      // worker process num
             'backlog' => 128,                       // listen backlog
             'log_file' => '/tmp/swoole.log',      // server log
         ), $this->setting);
 
-        $this ->config = $config;
         $this->setHost();
         $this->init();
     }
@@ -64,21 +66,23 @@ class Server
         $this->processName = $processName;
     }
 
-    public function loadConfig($config = array())
+    public function loadConfig($configPath)
     {
-        if (is_string($config))
-        {   // $config is file path?
-            if (! file_exists($config))
-            {
-                throw new \Exception("[error] profiles [$config] can not be loaded");
-            }
-            // Load the configuration file into an array
-            $config = parse_ini_file($config, true);
+
+        if (!is_file($configPath)) {
+            //TODO ERROR
+            return false;
         }
-        if (is_array($config))
+
+        $config = parse_ini_file($configPath, true);
+        if (!is_array($config))
         {
-            $this->config = array_merge($this->config, $config);
+            //TODO ERROR
+            return false;
         }
+
+        $this->config = array_merge($this->config, $config);
+        echo "config == " . print_r($this ->config, true);
         return true;
     }
 
