@@ -20,7 +20,6 @@ class Command {
 
 	public function exec(){
 
-		//echo " cmds == " . print_r($this ->cmds, true) . PHP_EOL;
 		/*
 			cmd length = 1 --> list or help or shutdown or startall
 			cmd length = 2 --> xxx start or status or stop or reload
