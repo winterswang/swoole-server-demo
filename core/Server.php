@@ -57,6 +57,7 @@ class Server
 
     public function setRequire($file)
     {
+	echo __METHOD__ . " file == $file \n";
         if (! file_exists($file))
         {
             throw new \Exception("[error] require file :$file is not exists");
@@ -111,6 +112,13 @@ class Server
         else{
             return false;
         }
+	
+	if(!isset($this ->config['main']['root'])){
+
+	    $this ->requireFile = $this ->config['main']['root'];	
+	}else{
+	    return false;
+	}
         return true;
     }
 

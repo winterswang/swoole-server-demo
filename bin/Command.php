@@ -66,7 +66,7 @@ class Command {
 		$server = new Server();
 		$server ->loadConfig($configPath);
 		$server ->setProcessName($serverName);
-		$server ->setRequire($configArr['main']['root']);
+		//$server ->setRequire($configArr['main']['root']);
 
 		$server ->run('start');
 	}
