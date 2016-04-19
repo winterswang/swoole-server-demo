@@ -3,7 +3,7 @@
  * @Author: winterswang(Í¹㳬)
  * @Date:   2016-04-15 11:24:41
  * @Last Modified by:   winterswang(王广超)
- * @Last Modified time: 2016-04-19 22:18:36
+ * @Last Modified time: 2016-04-19 22:20:12
  */
 
 namespace uranus\core;
@@ -57,7 +57,6 @@ class Server
 
     public function setRequire($file)
     {
-	echo __METHOD__ . " file == $file \n";
         if (! file_exists($file))
         {
             throw new \Exception("[error] require file :$file is not exists");
@@ -113,12 +112,13 @@ class Server
             return false;
         }
 	
-	if(!isset($this ->config['main']['root'])){
+    	if(!isset($this ->config['main']['root'])){
 
-	    $this ->requireFile = $this ->config['main']['root'];	
-	}else{
-	    return false;
-	}
+    	    $this ->requireFile = $this ->config['main']['root'];	
+    	}else
+        {
+    	    return false;
+    	}
         return true;
     }
 
