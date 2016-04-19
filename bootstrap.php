@@ -9,7 +9,6 @@
 spl_autoload_register(function($class) {
     if (strpos($class, 'uranus\\') === 0) {
         $name = substr($class, strlen('uranus'));
-        //echo __DIR__ . strtr($name, '\\', DIRECTORY_SEPARATOR) . ".php \n";
         require __DIR__ . strtr($name, '\\', DIRECTORY_SEPARATOR) . '.php';
     }
 });
