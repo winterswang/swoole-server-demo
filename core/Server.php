@@ -3,7 +3,7 @@
  * @Author: winterswang(Í¹㳬)
  * @Date:   2016-04-15 11:24:41
  * @Last Modified by:   winterswang(王广超)
- * @Last Modified time: 2016-04-19 22:20:12
+ * @Last Modified time: 2016-04-19 23:11:14
  */
 
 namespace uranus\core;
@@ -206,55 +206,44 @@ class Server
 
     public function onMasterStart($server)
     {
-        Console::setProcessName($this->processName . ': master process');
+        $this ->_setProcessName($this->processName . ': master process');
         file_put_contents($this->masterPidFile, $server->master_pid);
         file_put_contents($this->managerPidFile, $server->manager_pid);
-        if ($this->user)
-        {
-            Console::changeUser($this->user);
+        if ($this->user) {
+            $this->changeUser($this->user);
         }
     }
 
     public function onManagerStart($server)
     {
         // rename manager process
-        Console::setProcessName($this->processName . ': manager process');
-        if ($this->user)
-        {
-            Console::changeUser($this->user);
+        $this ->_setProcessName($this->processName . ': manager process');
+        if ($this->user) {
+            $this->changeUser($this->user);
         }
     }
 
     public function onWorkerStart($server, $workerId)
     {
-
-        if($workerId >= $this->setting['worker_num'])
-        {
-            Console::setProcessName($this->processName  . ': task worker process');
+        if ($this->user) {
+            $this->changeUser($this->user);
         }
-        else
-        {
-            Console::setProcessName($this->processName  . ': event worker process');
-        }
+        $protocol = (require_once $this->requireFile);//执行
 
-        if ($this->user)
-        {
-            Console::changeUser($this->user);
-        }
-
-        //ע²áP´ú       $protocol = (require_once $this->requireFile);
         $this->setProtocol($protocol);
-
-        if (! $this->protocol)
-        {
+        // check protocol class
+        if (!$this->protocol) {
             throw new \Exception("[error] the protocol class  is empty or undefined");
         }
-
-        //¼ÓØ»Щ³õ¯Ï
+        if ($workerId >= $this->setting['worker_num']) {
+            $this ->_setProcessName($this->processName . ': task worker process');
+        } else {
+            $this ->_setProcessName($this->processName . ': event worker process');
+        }
+        
         $this->protocol->onStart($server, $workerId);
     }
-    /*
-        ÈÏµļ¸¸öýýcolע²á4ʵÏº¯Ê¿ɱäÐµÄ     */
+ 
     public function onConnect($server, $fd, $fromId)
     {
         
@@ -453,13 +442,13 @@ class Server
 
     public function close($client_id)
     {
-        //TODO ÕÀֱ½Ó­ÉµÄ¹ÓÊ·ñԸÄ죿
+        
         swoole_server_close($this->sw, $client_id);
     }
 
     public function send($client_id, $data)
     {
-        //TDOO ͬÉ
+        
         swoole_server_send($this->sw, $client_id, $data);
     }
 
@@ -490,6 +479,35 @@ class Server
             error_log($msg . PHP_EOL, 3, $this->sw->setting['log_file']);
         }
         echo $msg . PHP_EOL;
+    }
+
+    /**
+     * [changeUser 更新进程信息]
+     * @param  [type] $user [description]
+     * @return [type]       [description]
+     */
+    public function changeUser($user)
+    {
+        if (!function_exists('posix_getpwnam')) {
+            trigger_error(__METHOD__ . ": require posix extension.");
+            return;
+        }
+        $user = posix_getpwnam($user);
+        if ($user) {
+            posix_setuid($user['uid']);
+            posix_setgid($user['gid']);
+        }
+    }
+
+    public function _setProcessName($name)
+    {
+        if (function_exists('cli_set_process_title')) {
+            cli_set_process_title($name);
+        } else if (function_exists('swoole_set_process_name')) {
+            swoole_set_process_name($name);
+        } else {
+            trigger_error(__METHOD__ . " failed. require cli_set_process_title or swoole_set_process_name.");
+        }
     }
 
 }
