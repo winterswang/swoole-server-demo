@@ -2,8 +2,8 @@
 /**
  * @Author: winterswang(Í¹㳬)
  * @Date:   2016-04-15 11:24:41
- * @Last Modified by:   winterswang(Í¹㳬)
- * @Last Modified time: 2016-04-15 14:14:49
+ * @Last Modified by:   winterswang(王广超)
+ * @Last Modified time: 2016-04-19 22:18:36
  */
 
 namespace uranus\core;
@@ -94,6 +94,7 @@ class Server
             switch ($this ->serverType) {
                 case 'http':
                     $this ->serverName = '\swoole_http_server';
+                    $this ->enableHttp = true;
                     break;
                 case 'tcp':
                     $this ->serverName = '\swoole_server';
