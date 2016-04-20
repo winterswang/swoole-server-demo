@@ -12,6 +12,7 @@ use uranus\core\Server;
 class Command {
 
 	protected $cmds;
+	public static $servers = array();
 
 	public function __construct($argv = array()){
 
@@ -67,6 +68,15 @@ class Command {
 		$server ->loadConfig($configPath);
 		$server ->setProcessName($serverName);
 		$server ->run('start');
+		self::$server[$serverName] = $server;
+	}
+
+	private function stop($serverName){
+
+		/*
+			根据不同的SVR类型，初始化client去发命令包
+		 */
+		self::$server[$servername] ->run('stop');
 	}
 
 	private function  getServList(){
