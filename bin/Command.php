@@ -68,7 +68,7 @@ class Command {
 		$server ->loadConfig($configPath);
 		$server ->setProcessName($serverName);
 		$server ->run('start');
-		self::$server[$serverName] = $server;
+		self::$servers[$serverName] = $server;
 	}
 
 	private function stop($serverName){
@@ -76,7 +76,7 @@ class Command {
 		/*
 			根据不同的SVR类型，初始化client去发命令包
 		 */
-		self::$server[$servername] ->run('stop');
+		self::$servers[$servername] ->run('stop');
 	}
 
 	private function  getServList(){
