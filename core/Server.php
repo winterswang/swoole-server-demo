@@ -214,13 +214,13 @@ class Server {
             $this ->_setProcessName($this->processName . ': event worker process');
         }
 
-        $protocol = (require_once $this->requireFile);//执行
+        //$protocol = (require_once $this->requireFile);//执行
 
-        $this->setProtocol($protocol);
+        //$this->setProtocol($protocol);
         // check protocol class
-        if (!$this->protocol) {
-            throw new \Exception("[error] the protocol class  is empty or undefined");
-        }
+        //if (!$this->protocol) {
+        //    throw new \Exception("[error] the protocol class  is empty or undefined");
+        //}
 
     }
     public function onConnect($server, $fd, $fromId)
