@@ -112,10 +112,10 @@ class Server {
     public function initServer() {
 
     	if ($this ->enableHttp) {
-    		$this->sw = new swoole_http_server($this->host, $this->port);
+    		$this->sw = new \swoole_http_server($this->host, $this->port);
     	}
     	else{
-    		$this ->sw = new swoole_server($this->host, $this->port, SWOOLE_PROCESS, $this ->sockType);
+    		$this ->sw = new \swoole_server($this->host, $this->port, SWOOLE_PROCESS, $this ->sockType);
     	}
         
         $this->sw->set($this->setting);
