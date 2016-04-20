@@ -300,6 +300,41 @@ class Server {
         }
     }
 
+    private function getMasterPid() {
+        $pid = false;
+        if (file_exists($this->masterPidFile)) {
+            $pid = file_get_contents($this->masterPidFile);
+        }
+        return $pid;
+    }
+
+    private function getManagerPid() {
+        $pid = false;
+        if (file_exists($this->managerPidFile)) {
+            $pid = file_get_contents($this->managerPidFile);
+        }
+        return $pid;
+    }
+    private function shutdown()
+    {
+        $masterId = $this ->getMasterPid();
+        if (! $masterId) {
+            $this->log("[warning] " . $this->processName . ": can not find master pid file");
+            $this->log($this->processName . ": stop\033[31;40m [FAIL] \033[0m");
+            return false;
+        }
+        elseif (! posix_kill($masterId, 15))
+        {
+            $this->log("[warning] " . $this->processName . ": send signal to master failed");
+            $this->log($this->processName . ": stop\033[31;40m [FAIL] \033[0m");
+            return false;
+        }
+        unlink($this->masterPidFile);
+        unlink($this->managerPidFile);
+        usleep(50000);
+        $this->log($this->processName . ": stop\033[31;40m [OK] \033[0m");
+        return true;
+    }
     /**
      * [changeUser 更新进程信息]
      * @param  [type] $user [description]
