@@ -205,7 +205,23 @@ class Server {
      */
     public function onWorkerStart($server, $workerId)
     {
-    	$this ->log(" on woker start");
+    	if ($this->user) {
+            $this->changeUser($this->user);
+        }
+        if ($workerId >= $this->setting['worker_num']) {
+            $this ->_setProcessName($this->processName . ': task worker process');
+        } else {
+            $this ->_setProcessName($this->processName . ': event worker process');
+        }
+        
+        $protocol = (require_once $this->requireFile);//执行
+
+        $this->setProtocol($protocol);
+        // check protocol class
+        if (!$this->protocol) {
+            throw new \Exception("[error] the protocol class  is empty or undefined");
+        }
+
     }
     public function onConnect($server, $fd, $fromId)
     {
