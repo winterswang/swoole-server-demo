@@ -182,13 +182,20 @@ class Server {
 
     public function onMasterStart($server)
     {
+        $this ->_setProcessName($this->processName . ': master process');
         file_put_contents($this->masterPidFile, $server->master_pid);
         file_put_contents($this->managerPidFile, $server->manager_pid);
+        if ($this->user) {
+            $this->changeUser($this->user);
+        }
     }
 
     public function onManagerStart($server)
     {
-
+        $this ->_setProcessName($this->processName . ': manager process');
+        if ($this->user) {
+            $this->changeUser($this->user);
+        }
     }
     /**
      * [onWorkerStart 在这里注入业务侧代码]
@@ -198,7 +205,7 @@ class Server {
      */
     public function onWorkerStart($server, $workerId)
     {
-    	echo " worker start \n";
+    	$this ->log(" on woker start");
     }
     public function onConnect($server, $fd, $fromId)
     {
@@ -274,6 +281,35 @@ class Server {
         foreach($listen as $v)
         {
             $this->transListener($v);
+        }
+    }
+
+    /**
+     * [changeUser 更新进程信息]
+     * @param  [type] $user [description]
+     * @return [type]       [description]
+     */
+    private function changeUser($user)
+    {
+        if (!function_exists('posix_getpwnam')) {
+            trigger_error(__METHOD__ . ": require posix extension.");
+            return;
+        }
+        $user = posix_getpwnam($user);
+        if ($user) {
+            posix_setuid($user['uid']);
+            posix_setgid($user['gid']);
+        }
+    }
+
+    private function _setProcessName($name)
+    {
+        if (function_exists('cli_set_process_title')) {
+            cli_set_process_title($name);
+        } else if (function_exists('swoole_set_process_name')) {
+            swoole_set_process_name($name);
+        } else {
+            trigger_error(__METHOD__ . " failed. require cli_set_process_title or swoole_set_process_name.");
         }
     }
 
