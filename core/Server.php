@@ -99,7 +99,7 @@ class Server {
             return false;
         }
 	
-    	if(!isset($this ->config['main']['root'])){
+    	if(isset($this ->config['main']['root'])){
 
     	    $this ->requireFile = $this ->config['main']['root'];	
     	}else
@@ -213,7 +213,7 @@ class Server {
         } else {
             $this ->_setProcessName($this->processName . ': event worker process');
         }
-        
+
         $protocol = (require_once $this->requireFile);//执行
 
         $this->setProtocol($protocol);
