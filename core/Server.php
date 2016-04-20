@@ -151,6 +151,35 @@ class Server {
         }
     }
 
+    public function run($cmd = 'help') {
+
+        switch ($cmd) {
+            case 'stop':
+                $this->shutdown();
+                break;
+            case 'start':
+                $this->_initRunTime();
+                $this->initServer();
+                $this->start();
+                break;
+            case 'reload':
+                $this->reload();
+                break;
+            case 'status':
+                $this->status();
+                break;
+            default:
+                echo 'Usage:php swoole.php start | stop | reload | restart | status | help' . PHP_EOL;
+                break;
+        }
+    }
+
+    private function start()
+    {
+        $this->log($this->processName . ": start\033[31;40m [OK] \033[0m");
+        $this->sw->start();
+    }
+
     public function onMasterStart($server)
     {
         file_put_contents($this->masterPidFile, $server->master_pid);
@@ -169,12 +198,6 @@ class Server {
      */
     public function onWorkerStart($server, $workerId)
     {
-        // $protocol = (require_once $this->requireFile);//执行
-        // $this->setProtocol($protocol);
-
-        // if (!$this->protocol) {
-        //     throw new \Exception("[error] the protocol class  is empty or undefined");
-        // }
     	echo " worker start \n";
     }
     public function onConnect($server, $fd, $fromId)
@@ -252,6 +275,15 @@ class Server {
         {
             $this->transListener($v);
         }
+    }
+
+    private function log($msg)
+    {
+        if ($this->sw->setting['log_file'] && file_exists($this->sw->setting['log_file']))
+        {
+            error_log($msg . PHP_EOL, 3, $this->sw->setting['log_file']);
+        }
+        echo $msg . PHP_EOL;
     }
 }
 ?>
