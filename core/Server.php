@@ -1,72 +1,65 @@
-<?php
-/**
- * @Author: winterswang(Í¹㳬)
- * @Date:   2016-04-15 11:24:41
- * @Last Modified by:   winterswang(王广超)
- * @Last Modified time: 2016-04-19 23:11:14
- */
+<?php 
 
 namespace uranus\core;
-class Server
-{
-    protected $sw;
-    protected $processName = 'swooleServ';
-    protected $host = '0.0.0.0';
-    protected $port = 8080;
-    protected $listen;
-    protected $mode = SWOOLE_PROCESS;
-    protected $sockType;
-    protected $udpListener;
-    protected $tcpListener;
-    protected $config = array();
-    protected $setting = array();
-    protected $runPath = '/tmp';
-    protected $masterPidFile;
-    protected $managerPidFile;
-    protected $user = 'root';
-    protected $serverType;
-    protected $serverName;
 
-    private $preSysCmd = '%+-swoole%+-';
-    private $requireFile = '';
+class Server {
 
+    public $processName = 'swooleServ';
+	public $setting = array();
+    public $masterPidFile;
+    public $managerPidFile;
+
+    public $host = '0.0.0.0';
+    public $port = '9876';
+    public $user = 'root';
+    public $serverName;
+    public $requireFile = '';
+
+    public $config = array();
+    public $runPath = '/tmp';
     public $enableHttp = false;
     public $protocol;
 
+    public $sockType;
+	public $listen;
+	public $sw;
 
+	const SWOOLE_SYS_CMD = '%+-swoole%+-';
 
-    /**
-     * [__construct description]
-     */
-    function __construct()
+	/**
+	 * [__construct 构造函数，设定HOST]
+	 */
+    public function __construct()
     {
-
         $this->setting = array_merge(array(
+			'dispatch_mode' => 2,   				//固定分配请求到worker
+			'reactor_num' => 4,     				//亲核
+			'daemonize' => 1,       				//守护进程
             'worker_num' => 8,                      // worker process num
             'backlog' => 128,                       // listen backlog
-            'log_file' => '/tmp/swoole.log',      // server log
+            'log_file' => '/tmp/swoole.log',        // server log
         ), $this->setting);
 
         $this->setHost();
-        $this->init();
     }
 
-    public function init() {
-
-    }
-
-    public function setRequire($file)
-    {
-        if (! file_exists($file))
+    private function setHost() {
+        $ipList = swoole_get_local_ip();
+        if (isset($ipList['eth1']))
         {
-            throw new \Exception("[error] require file :$file is not exists");
+            $this->host = $ipList['eth1'];
         }
-        $this->requireFile = $file;
+        elseif(isset($ipList['eth0'])) {
+            $this->host = $ipList['eth0'];
+        }
+        else
+        {
+            $this->host = '0.0.0.0';
+        }
     }
 
     public function setProcessName($processName)
     {
-
         $this->processName = $processName;
     }
 
@@ -85,25 +78,19 @@ class Server
         }
 
         $this ->config = array_merge($this->config, $config);
-        echo "config == " . print_r($this ->config, true);
-
         //server type
         if (isset($this ->config['main']['server_type'])) {
             $this ->serverType = $this ->config['main']['server_type'];
 
             switch ($this ->serverType) {
                 case 'http':
-                    $this ->serverName = '\swoole_http_server';
                     $this ->enableHttp = true;
                     break;
                 case 'tcp':
-                    $this ->serverName = '\swoole_server';
                     $this ->sockType = SWOOLE_SOCK_TCP;
                 case 'udp':
-                    $this ->serverName = '\swoole_server';
                     $this ->sockType = SWOOLE_SOCK_UDP;
                 default:
-                    $this ->serverName = '\swoole_server';
                     $this ->sockType = SWOOLE_SOCK_TCP;
                     break;
             }
@@ -122,37 +109,15 @@ class Server
         return true;
     }
 
-    protected function _initRunTime()
-    {
-        $mainSetting = $this->config['main'] ? $this->config['main'] : array();
-        $runSetting = $this->config['setting'] ? $this->config['setting'] : array();
+    public function initServer() {
+
+    	if ($this ->enableHttp) {
+    		$this->sw = new swoole_http_server($this->host, $this->port);
+    	}
+    	else{
+    		$this ->sw = new swoole_server($this->host, $this->port, SWOOLE_PROCESS, $this ->sockType);
+    	}
         
-        $this->masterPidFile =  $this->runPath . '/' . $this->processName . '.master.pid';
-        $this->managerPidFile = $this->runPath . '/' . $this->processName . '.manager.pid';
-        $this->setting = array_merge($this->setting, $runSetting);
-
-        // trans listener
-        if ($mainSetting['listen'])
-        {
-            $this->transListener($mainSetting['listen']);
-        }
-
-        // set user
-        if (isset($mainSetting['user']))
-        {
-            $this->user = $mainSetting['user'];
-        }
-
-        if ($this->listen[0]) {
-            $this->host = $this->listen[0]['host'] ? $this->listen[0]['host'] : $this->host;
-            $this->port = $this->listen[0]['port'] ? $this->listen[0]['port'] : $this->port;
-            unset($this->listen[0]);
-        }
-    }
-
-    private function initServer() {
-
-        $this->sw = new $this ->serverName($this->host, $this->port, $this->mode, $this->sockType);
         $this->sw->set($this->setting);
 
         // Set Event Server callback function
@@ -160,11 +125,13 @@ class Server
         $this->sw->on('ManagerStart', array($this, 'onManagerStart'));
         $this->sw->on('WorkerStart', array($this, 'onWorkerStart'));
         $this->sw->on('Connect', array($this, 'onConnect'));
-        $this->sw->on('Receive', array($this, 'onReceive'));
         $this->sw->on('Close', array($this, 'onClose'));
         $this->sw->on('WorkerStop', array($this, 'onWorkerStop'));
         if ($this->enableHttp) {
             $this->sw->on('Request', array($this, 'onRequest'));
+        }
+        else{
+        	$this->sw->on('Receive', array($this, 'onReceive'));
         }
         if (isset($this->setting['task_worker_num'])) {
             $this->sw->on('Finish', array($this, 'onFinish'));
@@ -184,69 +151,34 @@ class Server
         }
     }
 
-    private function transListener($listen)
-    {
-        if(! is_array($listen))
-        {
-            $tmpArr = explode(":", $listen);
-            $host = isset($tmpArr[1]) ? $tmpArr[0] : $this->host;
-            $port = isset($tmpArr[1]) ? $tmpArr[1] : $tmpArr[0];
-
-            $this->listen[] = array(
-                'host' => $host,
-                'port' => $port,
-            );
-            return true;
-        }
-        foreach($listen as $v)
-        {
-            $this->transListener($v);
-        }
-    }
-
     public function onMasterStart($server)
     {
-        $this ->_setProcessName($this->processName . ': master process');
         file_put_contents($this->masterPidFile, $server->master_pid);
         file_put_contents($this->managerPidFile, $server->manager_pid);
-        if ($this->user) {
-            $this->changeUser($this->user);
-        }
     }
 
     public function onManagerStart($server)
     {
-        // rename manager process
-        $this ->_setProcessName($this->processName . ': manager process');
-        if ($this->user) {
-            $this->changeUser($this->user);
-        }
-    }
 
+    }
+    /**
+     * [onWorkerStart 在这里注入业务侧代码]
+     * @param  [type] $server   [description]
+     * @param  [type] $workerId [description]
+     * @return [type]           [description]
+     */
     public function onWorkerStart($server, $workerId)
     {
-        if ($this->user) {
-            $this->changeUser($this->user);
-        }
-        $protocol = (require_once $this->requireFile);//执行
+        // $protocol = (require_once $this->requireFile);//执行
+        // $this->setProtocol($protocol);
 
-        $this->setProtocol($protocol);
-        // check protocol class
-        if (!$this->protocol) {
-            throw new \Exception("[error] the protocol class  is empty or undefined");
-        }
-        if ($workerId >= $this->setting['worker_num']) {
-            $this ->_setProcessName($this->processName . ': task worker process');
-        } else {
-            $this ->_setProcessName($this->processName . ': event worker process');
-        }
-        
-        $this->protocol->onStart($server, $workerId);
+        // if (!$this->protocol) {
+        //     throw new \Exception("[error] the protocol class  is empty or undefined");
+        // }
+    	echo " worker start \n";
     }
- 
     public function onConnect($server, $fd, $fromId)
     {
-        
         $this->protocol->onConnect($server, $fd, $fromId);
     }
 
@@ -274,241 +206,52 @@ class Server
         $this->protocol->onRequest($request, $response);
     }
 
-    /**
-     * [onReceive ÕÀÓһ¸öî¼ì£¬Êµ½ÌÊµİüôñ    * @param  [type] $server [description]
-     * @param  [type] $fd     [description]
-     * @param  [type] $fromId [description]
-     * @param  [type] $data   [description]
-     * @return [type]         [description]
-     */
-    public function onReceive($server, $fd, $fromId, $data)
+    private function _initRunTime()
     {
-        if($data ==  $this->preSysCmd . "reload")
-        {
-            $ret = intval($server->reload());
-            $server->send($fd, $ret);
-        }
-        elseif($data ==  $this->preSysCmd . "info")
-        {
-            $info = $server->connection_info($fd);
-            $server->send($fd, 'Info: '.var_export($info, true).PHP_EOL);
-        }
-        elseif($data ==  $this->preSysCmd . "stats")
-        {
-            $serv_stats = $server->stats();
-            $server->send($fd, 'Stats: '.var_export($serv_stats, true).PHP_EOL);
-        }
-        elseif($data ==  $this->preSysCmd . "shutdown")
-        {
-            $server->shutdown();
-        }
-        else
-        {
-           $this->protocol->onReceive($server, $fd, $fromId, $data);
-        }
-    }
-
-    public function setProtocol($protocol)
-    {
-        $this->protocol = $protocol;
-        $this->protocol->server = $this->sw;
-    }
-
-    public function run($cmd = 'help') {
-
-        switch ($cmd) {
-            //stop
-            case 'stop':
-                $this->shutdown();
-                break;
-            //start
-            case 'start':
-                $this->_initRunTime();
-                $this->initServer();
-                $this->start();
-                break;
-            //reload worker
-            case 'reload':
-                $this->reload();
-                break;
-            case 'restart':
-                $this->shutdown();
-                sleep(2);
-                $this->_initRunTime();
-                $this->initServer();
-                $this->start();
-                break;
-            case 'status':
-                $this->status();
-                break;
-            default:
-                echo 'Usage:php swoole.php start | stop | reload | restart | status | help' . PHP_EOL;
-                break;
-        }
-    }
-
-
-    protected function start()
-    {
-        if ($this->checkServerIsRunning()) {
-           $this->log("[warning] " . $this->processName . ": master process file " . $this->masterPidFile . " has already exists!");
-           $this->log($this->processName . ": start\033[31;40m [OK] \033[0m");
-           return false;
-        }
-        $this->log($this->processName . ": start\033[31;40m [OK] \033[0m");
-        $this->sw->start();
-    }
-
-
-    protected function shutdown()
-    {
-        $masterId = $this ->getMasterPid();
-        if (! $masterId) {
-            $this->log("[warning] " . $this->processName . ": can not find master pid file");
-            $this->log($this->processName . ": stop\033[31;40m [FAIL] \033[0m");
-            return false;
-        }
-        elseif (! posix_kill($masterId, 15))
-        {
-            $this->log("[warning] " . $this->processName . ": send signal to master failed");
-            $this->log($this->processName . ": stop\033[31;40m [FAIL] \033[0m");
-            return false;
-        }
-        unlink($this->masterPidFile);
-        unlink($this->managerPidFile);
-        usleep(50000);
-        $this->log($this->processName . ": stop\033[31;40m [OK] \033[0m");
-        return true;
-    }
-
-    protected function reload()
-    {
-        $managerId = $this->getManagerPid();
-        if (! $managerId) {
-            $this->log("[warning] " . $this->processName . ": can not find manager pid file");
-            $this->log($this->processName . ": reload\033[31;40m [FAIL] \033[0m");
-            return false;
-        }
-        elseif (! posix_kill($managerId, 10))//USR1
-        {
-            $this->log("[warning] " . $this->processName . ": send signal to manager failed");
-            $this->log($this->processName . ": stop\033[31;40m [FAIL] \033[0m");
-            return false;
-        }
-        $this->log($this->processName . ": reload\033[31;40m [OK] \033[0m");
-        return true;
-    }
-
-    protected function status()
-    {
-        $this->log("*****************************************************************");
-        $this->log("Summary: ");
-        $this->log("Swoole Version: " . SWOOLE_VERSION);
-        if (! $this->checkServerIsRunning()) {
-            $this->log($this->processName . ": is running \033[31;40m [FAIL] \033[0m");
-            $this->log("*****************************************************************");
-            return false;
-        }
-        $this->log($this->processName . ": is running \033[31;40m [OK] \033[0m");
-        $this->log("master pid : is " . $this->getMasterPid());
-        $this->log("manager pid : is " . $this->getManagerPid());
-        $this->log("*****************************************************************");
-    }
-
-    protected function getMasterPid() {
-        $pid = false;
-        if (file_exists($this->masterPidFile)) {
-            $pid = file_get_contents($this->masterPidFile);
-        }
-        return $pid;
-    }
-
-    protected function getManagerPid() {
-        $pid = false;
-        if (file_exists($this->managerPidFile)) {
-            $pid = file_get_contents($this->managerPidFile);
-        }
-        return $pid;
-    }
-
-    protected function checkServerIsRunning() {
-        $pid = $this->getMasterPid();
-        return $pid && $this->checkPidIsRunning($pid);
-    }
-
-    protected function checkPidIsRunning($pid) {
-        return posix_kill($pid, 0);
-    }
-
-    public function close($client_id)
-    {
+        $mainSetting = $this->config['main'] ? $this->config['main'] : array();
+        $runSetting = $this->config['setting'] ? $this->config['setting'] : array();
         
-        swoole_server_close($this->sw, $client_id);
-    }
+        $this->masterPidFile =  $this->runPath . '/' . $this->processName . '.master.pid';
+        $this->managerPidFile = $this->runPath . '/' . $this->processName . '.manager.pid';
+        $this->setting = array_merge($this->setting, $runSetting);
 
-    public function send($client_id, $data)
-    {
-        
-        swoole_server_send($this->sw, $client_id, $data);
-    }
-
-    public function daemonize()
-    {
-        $this->setting['setting']['daemonize'] = 1;
-    }
-
-    protected function setHost() {
-        $ipList = swoole_get_local_ip();
-        if (isset($ipList['eth1']))
+        // trans listener
+        if ($mainSetting['listen'])
         {
-            $this->host = $ipList['eth1'];
+            $this->transListener($mainSetting['listen']);
         }
-        elseif(isset($ipList['eth0'])) {
-            $this->host = $ipList['eth0'];
-        }
-        else
+
+        // set user
+        if (isset($mainSetting['user']))
         {
-            $this->host = '0.0.0.0';
+            $this->user = $mainSetting['user'];
+        }
+
+        if ($this->listen[0]) {
+            $this->host = $this->listen[0]['host'] ? $this->listen[0]['host'] : $this->host;
+            $this->port = $this->listen[0]['port'] ? $this->listen[0]['port'] : $this->port;
+            unset($this->listen[0]);
         }
     }
 
-    public function log($msg)
+    private function transListener($listen)
     {
-        if ($this->sw->setting['log_file'] && file_exists($this->sw->setting['log_file']))
+        if(! is_array($listen))
         {
-            error_log($msg . PHP_EOL, 3, $this->sw->setting['log_file']);
-        }
-        echo $msg . PHP_EOL;
-    }
+            $tmpArr = explode(":", $listen);
+            $host = isset($tmpArr[1]) ? $tmpArr[0] : $this->host;
+            $port = isset($tmpArr[1]) ? $tmpArr[1] : $tmpArr[0];
 
-    /**
-     * [changeUser 更新进程信息]
-     * @param  [type] $user [description]
-     * @return [type]       [description]
-     */
-    public function changeUser($user)
-    {
-        if (!function_exists('posix_getpwnam')) {
-            trigger_error(__METHOD__ . ": require posix extension.");
-            return;
+            $this->listen[] = array(
+                'host' => $host,
+                'port' => $port,
+            );
+            return true;
         }
-        $user = posix_getpwnam($user);
-        if ($user) {
-            posix_setuid($user['uid']);
-            posix_setgid($user['gid']);
+        foreach($listen as $v)
+        {
+            $this->transListener($v);
         }
     }
-
-    public function _setProcessName($name)
-    {
-        if (function_exists('cli_set_process_title')) {
-            cli_set_process_title($name);
-        } else if (function_exists('swoole_set_process_name')) {
-            swoole_set_process_name($name);
-        } else {
-            trigger_error(__METHOD__ . " failed. require cli_set_process_title or swoole_set_process_name.");
-        }
-    }
-
 }
 ?>
